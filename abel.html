@@ -3,10 +3,13 @@
     <title>Visualizing Abel's Lemma</title>
     <style>p { font-family: "Arial", "Liberation Sans", sans-serif; }</style>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+      <script type="text/javascript"
+            src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        </script>
 </head>
 <body>
   <p>
-    Abel's theorem.
+    A version of Abel's lemma: Let \(K\) be a convex subset of \(\mathbf{R}^n\) and suppose we have a sequence \(a_1,\ldots,a_n\in\mathbf{R}^n\) so that \(\sum_{i=1}^N a_i \in K\) for all \(1\le N\le n\). If \(\phi_1\ge\ldots\ge\phi_n\ge 0\), then \(\sum_{i=1}^n \phi_ia_i \in K\) as well.
   </p>
   <script src="js/svg.min.js"></script>
   <script>
@@ -60,18 +63,11 @@
       var paths = [];
 
       for (var i = 0 ; i < N-1 ; ++i) {
-        //var s = 'M' + pts[i][0] + ' ' + pts[i][1] + 'L' + pts[i+1][0]+' ' + pts[i+1][1];
-        //console.log([pts[i],pts[i+1]]);
         var a = new SVG.PointArray([pts[i],pts[i+1]]);
         var p = group.polyline(a).stroke('black').opacity('0.5');
         p.marker('end',marker);
         paths.push(p);
-        //p.animate(2000,'-',1000).plot(0,0,100,100);
-        //p.animate(2000,'-',1000).plot([[0,0],[100,100]]);
       }
-      //group.animate(2000,'-',1000).opacity(0.1).after(function () {
-      //this.animate(2000,'-',1000).opacity(0.9);
-      //});
 
       var multipliers = nRandomMultipliers(N);
 
@@ -100,28 +96,32 @@
         ptss.push(pts_new);
         circles[0].fill('yellow');
         for (var j = 0 ; j < N ; ++j) {
-            (function () {
-                var ii = i;
-                var jj = j;
-                circleAnimations[i-1][j] = function () {
-                  console.log('x',ptss[ii][jj],'y',vss[ii][jj]);
-                  circles[jj].animate(2000,'-',1000).move(ptss[ii][jj][0],ptss[ii][jj][1]).after(function () {
-                    if (ii < N-1) {
-                      circleAnimations[ii][jj]();
-                    }
-                    circles[ii-1].fill('blue');
-                    if (ii < N-1) {
-                      circles[ii].fill('yellow');
-                    } else {
-                      circles[ii].fill('blue');
-                    }
-                    paths[ii-1].opacity(0.1);
-                  });
-                  if (jj < N-1) {
-                    paths[jj].animate(2000,'-',1000).plot([ptss[ii][jj],ptss[ii][jj+1]]);
+          (function () { // need to close over i and j
+              var ii = i;
+              var jj = j;
+              circleAnimations[i-1][j] = function () {
+                var duration = 2000; //*(1-multipliers[ii]);
+                var delay = 1000;
+                if (jj > ii) {
+                  var a = new SVG.PointArray([ptss[ii-1][ii-1],ptss[ii-1][jj]]);
+                  var ray = group.polyline(a).stroke('yellow').opacity(0.5);
+                }
+                circles[jj].animate(duration,'<>',delay).move(ptss[ii][jj][0],ptss[ii][jj][1]).after(function () {
+                  paths[ii-1].opacity(0.1);
+                  circles[ii-1].fill('blue');
+                  if (jj > ii) ray.remove();
+                  if (ii < N-1) {
+                    if (ii == jj) circles[ii].fill('yellow');
+                    circleAnimations[ii][jj]();
+                  } else {
+                    if (ii == jj) circles[ii].fill('blue');
                   }
-                };
-              })();
+                });
+                if (jj < N-1) {
+                  paths[jj].animate(duration,'<>',delay).plot([ptss[ii][jj],ptss[ii][jj+1]]);
+                }
+              };
+            })();
         }
       }
       for (var j = 0 ; j < N ; ++j) {
@@ -156,9 +156,14 @@
     }
 
     function nRandomMultipliers (n) {
-      var rv = [];
+      var xs = [];
       for (var i = 0 ; i < n ; ++i) {
-        rv.push(Math.random()*0.05+0.9);
+        xs.push(Math.random());
+      }
+      xs.sort(function(a,b){return b-a;});
+      var rv = [xs[0]];
+      for (var i = 1 ; i < n ; ++i) {
+        rv[i] = xs[i]/xs[i-1];
       }
       return rv;
     }
