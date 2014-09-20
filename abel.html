@@ -1,0 +1,171 @@
+<html>
+  <head>
+    <title>Visualizing Abel's Lemma</title>
+    <style>p { font-family: "Arial", "Liberation Sans", sans-serif; }</style>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+</head>
+<body>
+  <p>
+    Abel's theorem.
+  </p>
+  <script src="js/svg.min.js"></script>
+  <script>
+    go = function () {
+      if (!SVG.supported) {
+        document.getElementById('drawing-area').innerHTML = "<p>Error: Your browser does not appear to support SVG.</p>"
+        return;
+      }
+      
+      var N = 20;
+
+      var canvasWidth = 500;
+      var canvasHeight = 500;
+      var draw = SVG('drawing-area').size(canvasWidth,canvasHeight);
+      draw.attr({'style':'border:1px solid black'});
+      var spaceWidth = 450;
+      var spaceHeight = 450;
+      var group = draw.group().move((canvasHeight-spaceHeight)/2,(canvasHeight-spaceHeight)/2);
+      var rect = group.rect(spaceWidth,spaceHeight).attr({fill:'#fab'});
+
+      //
+      //
+
+      var ptRad = 3;
+      var pt = group.symbol().move(-ptRad,-ptRad);
+      pt.circle(2*ptRad);
+
+      //
+      //
+
+      var vs = nRandomAbelVectors(N,spaceWidth,spaceHeight);
+
+      var pts = partialSums(vs)
+      
+      //
+      //
+
+      circles = []
+
+      pts.forEach(function (c) {
+        circles.push(group.use(pt).move(c[0],c[1]));
+      });
+
+      //
+      //
+
+      var marker = group.marker(25,8,function(add) {
+        add.polygon('0,4 0,-4 10,0').fill('black').center(0,0);
+      });
+
+      var paths = [];
+
+      for (var i = 0 ; i < N-1 ; ++i) {
+        //var s = 'M' + pts[i][0] + ' ' + pts[i][1] + 'L' + pts[i+1][0]+' ' + pts[i+1][1];
+        //console.log([pts[i],pts[i+1]]);
+        var a = new SVG.PointArray([pts[i],pts[i+1]]);
+        var p = group.polyline(a).stroke('black').opacity('0.5');
+        p.marker('end',marker);
+        paths.push(p);
+        //p.animate(2000,'-',1000).plot(0,0,100,100);
+        //p.animate(2000,'-',1000).plot([[0,0],[100,100]]);
+      }
+      //group.animate(2000,'-',1000).opacity(0.1).after(function () {
+      //this.animate(2000,'-',1000).opacity(0.9);
+      //});
+
+      var multipliers = nRandomMultipliers(N);
+
+      var vss = [vs];
+      var ptss = [pts];
+      var vs_old = vs;
+
+      var circleAnimations = [];
+
+      for (var i = 1 ; i < N ; ++i) {
+        var vs_new = [];
+        for (var j = 0 ; j < i ; ++j) {
+          vs_new[j] = [];
+          vs_new[j][0] = vs_old[j][0];
+          vs_new[j][1] = vs_old[j][1];
+        }
+        for (var j = i ; j < N ; ++j) {
+          vs_new[j] = [];
+          vs_new[j][0] = vs_old[j][0]*multipliers[i];
+          vs_new[j][1] = vs_old[j][1]*multipliers[i];
+        }
+        var pts_new = partialSums(vs_new);
+        circleAnimations[i-1] = [];
+        vs_old = vs_new;
+        vss.push(vs_new);
+        ptss.push(pts_new);
+        circles[0].fill('yellow');
+        for (var j = 0 ; j < N ; ++j) {
+            (function () {
+                var ii = i;
+                var jj = j;
+                circleAnimations[i-1][j] = function () {
+                  console.log('x',ptss[ii][jj],'y',vss[ii][jj]);
+                  circles[jj].animate(2000,'-',1000).move(ptss[ii][jj][0],ptss[ii][jj][1]).after(function () {
+                    if (ii < N-1) {
+                      circleAnimations[ii][jj]();
+                    }
+                    circles[ii-1].fill('blue');
+                    if (ii < N-1) {
+                      circles[ii].fill('yellow');
+                    } else {
+                      circles[ii].fill('blue');
+                    }
+                    paths[ii-1].opacity(0.1);
+                  });
+                  if (jj < N-1) {
+                    paths[jj].animate(2000,'-',1000).plot([ptss[ii][jj],ptss[ii][jj+1]]);
+                  }
+                };
+              })();
+        }
+      }
+      for (var j = 0 ; j < N ; ++j) {
+        circleAnimations[0][j]();
+      }
+    }
+
+    function nRandomAbelVectors (n,x,y) {
+      var last_x = Math.random()*x;
+      var last_y = Math.random()*y;
+      var rv = [[last_x,last_y]];
+      for (var i = 1 ; i < n ; ++i) {
+        cur_x = Math.random()*x;
+        cur_y = Math.random()*y;
+        rv[i] = [cur_x-last_x,cur_y-last_y];
+        last_x = cur_x;
+        last_y = cur_y;
+      }
+      return rv;
+    }
+
+    function partialSums (a) {
+      var x = 0;
+      var y = 0;
+      var rv = [];
+      for (var i = 0 ; i < a.length ; ++i) {
+        x += a[i][0];
+        y += a[i][1];
+        rv[i] = [x,y]
+      }
+      return rv;
+    }
+
+    function nRandomMultipliers (n) {
+      var rv = [];
+      for (var i = 0 ; i < n ; ++i) {
+        rv.push(Math.random()*0.05+0.9);
+      }
+      return rv;
+    }
+
+    window.onload = go;
+  </script>
+
+  <div id="drawing-area"></div>
+  <hr />
+  <p><small>Source available on <a href="https://github.com/ajdunlap/visualizing-abels-lemma">GitHub</a>. Created with <a href="http://svgjs.com">svg.js</a>.
