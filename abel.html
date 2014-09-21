@@ -19,10 +19,11 @@
         return;
       }
       
-      var N = 20;
+      var N = 10;
 
       var canvasWidth = 500;
       var canvasHeight = 500;
+
       var draw = SVG('drawing-area').size(canvasWidth,canvasHeight);
       draw.attr({'style':'border:1px solid black'});
       var spaceWidth = 450;
@@ -56,8 +57,8 @@
       //
       //
 
-      var marker = group.marker(25,8,function(add) {
-        add.polygon('0,4 0,-4 10,0').fill('black').center(0,0);
+      var marker = group.marker(27,10,function(add) {
+        add.polygon('0,0 10,5 0,10').fill('black');
       });
 
       var paths = [];
@@ -103,19 +104,28 @@
                 var duration = 2000; //*(1-multipliers[ii]);
                 var delay = 1000;
                 var ease = '-';
-                if (jj > ii) {
+                if (jj >= ii) {
                   var a = new SVG.PointArray([ptss[ii-1][ii-1],ptss[ii-1][jj]]);
                   var ray = group.polyline(a).stroke('yellow').opacity(0.5);
                 }
                 circles[jj].animate(duration,ease,delay).move(ptss[ii][jj][0],ptss[ii][jj][1]).after(function () {
                   paths[ii-1].opacity(0.1);
                   circles[ii-1].fill('blue');
-                  if (jj > ii) ray.remove();
+                  if (jj >= ii) ray.remove();
                   if (ii < N-1) {
                     if (ii == jj) circles[ii].fill('yellow');
                     circleAnimations[ii][jj]();
                   } else {
-                    if (ii == jj) circles[ii].fill('blue');
+                    if (ii == jj) {
+                      circles[jj].fill('blue');
+                      // Reset the page - this is hidden in here so it only
+                      // gets called once. Ideally there would be a better
+                      // synchronization scheme.
+                      setTimeout(function () {
+                        cleanup ();
+                        go ();
+                      },1000);
+                    }
                   }
                 });
                 if (jj < N-1) {
@@ -159,7 +169,7 @@
     function nRandomMultipliers (n) {
       var xs = [];
       for (var i = 0 ; i < n ; ++i) {
-        xs.push(i/n*(1+0.5/n*Math.random()));
+        xs.push((n-i+1)/(n+1)*(1+0.5/(n+1)*Math.random()));
       }
       xs.sort(function(a,b){return b-a;});
       var rv = [xs[0]];
@@ -169,11 +179,17 @@
       return rv;
     }
 
+    function cleanup () {
+      // remove any image from previous run, since this function is called
+      var children = document.getElementById('drawing-area').children;
+      for (var i = 0 ; i < children.length ; ++i) {
+        children[i].remove();
+      }
+    }
+
     window.onload = go;
   </script>
 
   <div id="drawing-area"></div>
-  <small>To replay, refresh the page.</small>
-  <small>Currently best viewed with Mozilla Firefox.</small>
   <hr />
   <p><small>Source available on <a href="https://github.com/ajdunlap/visualizing-abels-lemma">GitHub</a>. Created with <a href="http://svgjs.com">svg.js</a>.
